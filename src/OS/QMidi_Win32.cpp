@@ -43,11 +43,37 @@ bool QMidiOut::connect(QString outDeviceId)
 		disconnect();
 	fMidiPtrs = new NativeMidiOutInstances;
 
-	midiOutOpen(&fMidiPtrs->midiOut, outDeviceId.toInt(), 0, 0, CALLBACK_NULL);
+    MMRESULT result = midiOutOpen(&fMidiPtrs->midiOut, outDeviceId.toInt(), 0, 0, CALLBACK_NULL);
+
+    if (result == MIDIERR_NODEVICE) {
+        qWarning("QMidi_Win32: No MIDI port was found. This error occurs only when the mapper is opened.");
+        fConnected = false;
+    }
+    else if (result == MMSYSERR_ALLOCATED) {
+        qWarning("QMidi_Win32: The specified resource is already allocated.");
+    }
+    else if (result == MMSYSERR_BADDEVICEID) {
+        qWarning("QMidi_Win32: The specified device identifier is out of range.");
+    }
+    else if (result == MMSYSERR_INVALPARAM) {
+        qWarning("QMidi_Win32: The specified pointer or structure is invalid.");
+    }
+    else if (result == MMSYSERR_NOMEM) {
+        qWarning("QMidi_Win32: The system is unable to allocate or lock memory.");
+    }
+    else if (result == MMSYSERR_NOERROR)
+    {
+        //No message
+    }
+    else
+    {
+        qWarning("QMidi_Win32: Unknown error. MMRESULT: %d", result);
+    }
 
 	fDeviceId = outDeviceId;
-	fConnected = true;
-	return true;
+    fConnected = true;
+
+    return true;
 }
 
 void QMidiOut::disconnect()
