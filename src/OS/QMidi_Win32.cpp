@@ -30,7 +30,29 @@ QMap<QString, QString> QMidiOut::devices()
 
 	for (int i = 0; i < numDevs; i++) {
 		MIDIOUTCAPSW devCaps;
-		midiOutGetDevCapsW(i, &devCaps, sizeof(MIDIOUTCAPSW));
+        MMRESULT result = midiOutGetDevCapsW(i, &devCaps, sizeof(MIDIOUTCAPSW));
+
+        if (result == MMSYSERR_BADDEVICEID)
+        {
+            qWarning("%s: %s", Q_FUNC_INFO, "The specified device identifier is out of range.");
+        }
+        else if (result == MMSYSERR_INVALPARAM)
+        {
+            qWarning("%s: %s", Q_FUNC_INFO, "The specified pointer or structure is invalid.");
+        }
+        else if (result == MMSYSERR_NODRIVER)
+        {
+            qWarning("%s: %s", Q_FUNC_INFO, "The driver is not installed.");
+        }
+        else if (result == MMSYSERR_NOMEM)
+        {
+            qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to load mapper string description.");
+        }
+        else if (result != MMSYSERR_NOERROR)
+        {
+            qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
+        }
+
 		ret.insert(QString::number(i), QString::fromWCharArray(devCaps.szPname));
 	}
 
@@ -46,28 +68,23 @@ bool QMidiOut::connect(QString outDeviceId)
     MMRESULT result = midiOutOpen(&fMidiPtrs->midiOut, outDeviceId.toInt(), 0, 0, CALLBACK_NULL);
 
     if (result == MIDIERR_NODEVICE) {
-        qWarning("QMidi_Win32: No MIDI port was found. This error occurs only when the mapper is opened.");
-        fConnected = false;
+        qWarning("%s: %s", Q_FUNC_INFO, "No MIDI port was found. This error occurs only when the mapper is opened.");
     }
     else if (result == MMSYSERR_ALLOCATED) {
-        qWarning("QMidi_Win32: The specified resource is already allocated.");
+        qWarning("%s: %s", Q_FUNC_INFO, "The specified resource is already allocated.");
     }
     else if (result == MMSYSERR_BADDEVICEID) {
-        qWarning("QMidi_Win32: The specified device identifier is out of range.");
+        qWarning("%s: %s", Q_FUNC_INFO, "The specified device identifier is out of range.");
     }
     else if (result == MMSYSERR_INVALPARAM) {
-        qWarning("QMidi_Win32: The specified pointer or structure is invalid.");
+        qWarning("%s: %s", Q_FUNC_INFO, "The specified pointer or structure is invalid.");
     }
     else if (result == MMSYSERR_NOMEM) {
-        qWarning("QMidi_Win32: The system is unable to allocate or lock memory.");
+        qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to allocate or lock memory.");
     }
-    else if (result == MMSYSERR_NOERROR)
+    else if (result != MMSYSERR_NOERROR)
     {
-        //No message
-    }
-    else
-    {
-        qWarning("QMidi_Win32: Unknown error. MMRESULT: %d", result);
+        qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
     }
 
 	fDeviceId = outDeviceId;
@@ -81,7 +98,25 @@ void QMidiOut::disconnect()
 	if (!fConnected)
 		return;
 
-	midiOutClose(fMidiPtrs->midiOut);
+    MMRESULT result = midiOutClose(fMidiPtrs->midiOut);
+
+    if (result == MIDIERR_STILLPLAYING)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "Buffers are still in the queue.");
+    }
+    else if (result == MMSYSERR_INVALHANDLE)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "The specified device handle is invalid.");
+    }
+    else if (result == MMSYSERR_NOMEM)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to load mapper string description.");
+    }
+    else if (result != MMSYSERR_NOERROR)
+    {
+        qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
+    }
+
 	fConnected = false;
 
 	delete fMidiPtrs;
@@ -93,7 +128,24 @@ void QMidiOut::sendMsg(qint32 msg)
 	if (!fConnected)
 		return;
 
-	midiOutShortMsg(fMidiPtrs->midiOut, (DWORD)msg);
+    MMRESULT result = midiOutShortMsg(fMidiPtrs->midiOut, (DWORD)msg);
+
+    if (result == MIDIERR_BADOPENMODE)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "The application sent a message without a status byte to a stream handle.");
+    }
+    else if (result == MIDIERR_NOTREADY)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "The hardware is busy with other data.");
+    }
+    else if (result == MMSYSERR_INVALHANDLE)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "The specified device handle is invalid.");
+    }
+    else if (result != MMSYSERR_NOERROR)
+    {
+        qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
+    }
 }
 
 void QMidiOut::sendSysEx(const QByteArray &data)
@@ -166,7 +218,7 @@ static void CALLBACK QMidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstanc
 		break;
 	}
 	default:
-		qWarning("QMidi_Win32: no handler for message %d", wMsg);
+        qWarning("%s: no handler for message %d", Q_FUNC_INFO, wMsg);
 	}
 }
 
