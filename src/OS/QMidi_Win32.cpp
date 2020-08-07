@@ -48,6 +48,10 @@ QMap<QString, QString> QMidiOut::devices()
         {
             qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to load mapper string description.");
         }
+        else if (result == ERROR_INVALID_HANDLE)
+        {
+            qWarning("%s: %s", Q_FUNC_INFO, "The handle is invalid.");
+        }
         else if (result != MMSYSERR_NOERROR)
         {
             qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
@@ -82,6 +86,10 @@ bool QMidiOut::connect(QString outDeviceId)
     else if (result == MMSYSERR_NOMEM) {
         qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to allocate or lock memory.");
     }
+    else if (result == ERROR_INVALID_HANDLE)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "The handle is invalid.");
+    }
     else if (result != MMSYSERR_NOERROR)
     {
         qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
@@ -112,6 +120,10 @@ void QMidiOut::disconnect()
     {
         qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to load mapper string description.");
     }
+    else if (result == ERROR_INVALID_HANDLE)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "The handle is invalid.");
+    }
     else if (result != MMSYSERR_NOERROR)
     {
         qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
@@ -141,6 +153,10 @@ void QMidiOut::sendMsg(qint32 msg)
     else if (result == MMSYSERR_INVALHANDLE)
     {
         qWarning("%s: %s", Q_FUNC_INFO, "The specified device handle is invalid.");
+    }
+    else if (result == ERROR_INVALID_HANDLE)
+    {
+        qWarning("%s: %s", Q_FUNC_INFO, "The handle is invalid.");
     }
     else if (result != MMSYSERR_NOERROR)
     {
