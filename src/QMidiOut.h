@@ -6,16 +6,19 @@
 
 #include <QMap>
 #include <QString>
+#include <QObject>
 
 class QMidiEvent;
 struct NativeMidiOutInstances;
 
-class QMidiOut
+class QMidiOut : public QObject
 {
+    Q_OBJECT
 public:
 	static QMap<QString /* key */, QString /* name */> devices();
 
-	QMidiOut();
+    explicit QMidiOut(QObject *parent = nullptr);
+
 	~QMidiOut();
 	bool connect(QString outDeviceId);
 	void disconnect();
@@ -37,6 +40,9 @@ public:
 
 	bool isConnected() const { return fConnected; }
 	QString deviceId() const { return fDeviceId; }
+
+signals:
+    void disconnected(QString deviceId);
 
 private:
 	QString fDeviceId;

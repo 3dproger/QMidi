@@ -8,8 +8,9 @@
 
 // TODO: error reporting
 
-QMidiOut::QMidiOut()
-	: fMidiPtrs(NULL),
+QMidiOut::QMidiOut(QObject *parent)
+    : QObject(parent),
+      fMidiPtrs(NULL),
 	  fConnected(false)
 {
 }

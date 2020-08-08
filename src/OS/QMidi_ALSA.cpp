@@ -113,6 +113,8 @@ void QMidiOut::disconnect()
 	snd_seq_close(fMidiPtrs->midiOutPtr);
 	delete fMidiPtrs;
 	fMidiPtrs = NULL;
+
+    emit disconnected(fDeviceId);
 }
 
 void QMidiOut::sendMsg(qint32 msg)

@@ -18,45 +18,44 @@ struct NativeMidiOutInstances {
 	HMIDIOUT midiOut;
 };
 
-// TODO: error reporting
-inline void showWinApiError(const char* tag, long long int code)
+void showWinApiError(const char* tag, long long int code)
 {
-    const DWORD size = 1024;
-    WCHAR buffer[size];
-    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), buffer, size, NULL);
+    WCHAR buffer[MAXERRORLENGTH];
+    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), buffer, MAXERRORLENGTH, NULL);
+    const QString message = QString::fromWCharArray(buffer, MAXERRORLENGTH);
 
     if (strlen(tag) > 0)
     {
         qWarning(QString("%1: ERROR (%2): %3")
-                 .arg(tag).arg(code).arg(buffer).toUtf8());
+                 .arg(tag).arg(code).arg(message).toUtf8());
     }
     else
     {
         qWarning(QString("%1: ERROR (%2): %3")
-                 .arg(__FILE__).arg(code).arg(buffer).toUtf8());
+                 .arg(__FILE__).arg(code).arg(message).toUtf8());
     }
 }
 
 QMap<QString, QString> QMidiOut::devices()
 {
-	QMap<QString, QString> ret;
+    QMap<QString, QString> ret;
 
-	int numDevs = midiOutGetNumDevs();
-	if (numDevs == 0)
-		return ret;
+    int numDevs = midiOutGetNumDevs();
+    if (numDevs == 0)
+        return ret;
 
-	for (int i = 0; i < numDevs; i++) {
-		MIDIOUTCAPSW devCaps;
+    for (int i = 0; i < numDevs; i++) {
+        MIDIOUTCAPSW devCaps;
 
         MMRESULT winApiResult = midiOutGetDevCapsW(i, &devCaps, sizeof(MIDIOUTCAPSW));
         if (MMSYSERR_NOERROR != winApiResult) {
             showWinApiError(Q_FUNC_INFO, winApiResult);
         }
 
-		ret.insert(QString::number(i), QString::fromWCharArray(devCaps.szPname));
-	}
+        ret.insert(QString::number(i), QString::fromWCharArray(devCaps.szPname));
+    }
 
-	return ret;
+    return ret;
 }
 
 bool QMidiOut::connect(QString outDeviceId)
@@ -90,6 +89,8 @@ void QMidiOut::disconnect()
 
 	delete fMidiPtrs;
 	fMidiPtrs = NULL;
+
+    emit QMidiOut::disconnected(fDeviceId);
 }
 
 void QMidiOut::sendMsg(qint32 msg)
@@ -100,6 +101,11 @@ void QMidiOut::sendMsg(qint32 msg)
     MMRESULT winApiResult = midiOutShortMsg(fMidiPtrs->midiOut, (DWORD)msg);
     if (MMSYSERR_NOERROR != winApiResult) {
         showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
+
+    if (winApiResult == ERROR_INVALID_HANDLE)
+    {
+        disconnect();
     }
 }
 
