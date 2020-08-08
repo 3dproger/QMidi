@@ -223,6 +223,8 @@ void QMidiIn::disconnect()
 	snd_seq_close(fMidiPtrs->midiIn);
 	delete fMidiPtrs;
 	fMidiPtrs = nullptr;
+
+    emit disconnected(fDeviceId);
 }
 
 void QMidiIn::start()

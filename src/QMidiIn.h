@@ -71,6 +71,8 @@ signals:
 	//! and end bytes (0xF7).
 	void midiSysExEvent(QByteArray data);
 
+    void disconnected(QString deviceId);
+
 private:
 	QString fDeviceId;
 	NativeMidiInInstances* fMidiPtrs;

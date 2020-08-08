@@ -198,6 +198,8 @@ void QMidiIn::disconnect()
 	fConnected = false;
 	delete fMidiPtrs;
 	fMidiPtrs = NULL;
+
+    emit disconnected(fDeviceId);
 }
 
 void QMidiIn::start()
