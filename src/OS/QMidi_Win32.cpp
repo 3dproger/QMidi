@@ -19,6 +19,23 @@ struct NativeMidiOutInstances {
 };
 
 // TODO: error reporting
+inline void showWinApiError(const char* tag, long long int code)
+{
+    const DWORD size = 1024;
+    WCHAR buffer[size];
+    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, code, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), buffer, size, NULL);
+
+    if (strlen(tag) > 0)
+    {
+        qWarning(QString("%1: ERROR (%2): %3")
+                 .arg(tag).arg(code).arg(buffer).toUtf8());
+    }
+    else
+    {
+        qWarning(QString("%1: ERROR (%2): %3")
+                 .arg(__FILE__).arg(code).arg(buffer).toUtf8());
+    }
+}
 
 QMap<QString, QString> QMidiOut::devices()
 {
@@ -30,31 +47,10 @@ QMap<QString, QString> QMidiOut::devices()
 
 	for (int i = 0; i < numDevs; i++) {
 		MIDIOUTCAPSW devCaps;
-        MMRESULT result = midiOutGetDevCapsW(i, &devCaps, sizeof(MIDIOUTCAPSW));
 
-        if (result == MMSYSERR_BADDEVICEID)
-        {
-            qWarning("%s: %s", Q_FUNC_INFO, "The specified device identifier is out of range.");
-        }
-        else if (result == MMSYSERR_INVALPARAM)
-        {
-            qWarning("%s: %s", Q_FUNC_INFO, "The specified pointer or structure is invalid.");
-        }
-        else if (result == MMSYSERR_NODRIVER)
-        {
-            qWarning("%s: %s", Q_FUNC_INFO, "The driver is not installed.");
-        }
-        else if (result == MMSYSERR_NOMEM)
-        {
-            qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to load mapper string description.");
-        }
-        else if (result == ERROR_INVALID_HANDLE)
-        {
-            qWarning("%s: %s", Q_FUNC_INFO, "The handle is invalid.");
-        }
-        else if (result != MMSYSERR_NOERROR)
-        {
-            qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
+        MMRESULT winApiResult = midiOutGetDevCapsW(i, &devCaps, sizeof(MIDIOUTCAPSW));
+        if (MMSYSERR_NOERROR != winApiResult) {
+            showWinApiError(Q_FUNC_INFO, winApiResult);
         }
 
 		ret.insert(QString::number(i), QString::fromWCharArray(devCaps.szPname));
@@ -69,30 +65,9 @@ bool QMidiOut::connect(QString outDeviceId)
 		disconnect();
 	fMidiPtrs = new NativeMidiOutInstances;
 
-    MMRESULT result = midiOutOpen(&fMidiPtrs->midiOut, outDeviceId.toInt(), 0, 0, CALLBACK_NULL);
-
-    if (result == MIDIERR_NODEVICE) {
-        qWarning("%s: %s", Q_FUNC_INFO, "No MIDI port was found. This error occurs only when the mapper is opened.");
-    }
-    else if (result == MMSYSERR_ALLOCATED) {
-        qWarning("%s: %s", Q_FUNC_INFO, "The specified resource is already allocated.");
-    }
-    else if (result == MMSYSERR_BADDEVICEID) {
-        qWarning("%s: %s", Q_FUNC_INFO, "The specified device identifier is out of range.");
-    }
-    else if (result == MMSYSERR_INVALPARAM) {
-        qWarning("%s: %s", Q_FUNC_INFO, "The specified pointer or structure is invalid.");
-    }
-    else if (result == MMSYSERR_NOMEM) {
-        qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to allocate or lock memory.");
-    }
-    else if (result == ERROR_INVALID_HANDLE)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "The handle is invalid.");
-    }
-    else if (result != MMSYSERR_NOERROR)
-    {
-        qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
+    MMRESULT winApiResult = midiOutOpen(&fMidiPtrs->midiOut, outDeviceId.toInt(), 0, 0, CALLBACK_NULL);
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
     }
 
 	fDeviceId = outDeviceId;
@@ -106,27 +81,9 @@ void QMidiOut::disconnect()
 	if (!fConnected)
 		return;
 
-    MMRESULT result = midiOutClose(fMidiPtrs->midiOut);
-
-    if (result == MIDIERR_STILLPLAYING)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "Buffers are still in the queue.");
-    }
-    else if (result == MMSYSERR_INVALHANDLE)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "The specified device handle is invalid.");
-    }
-    else if (result == MMSYSERR_NOMEM)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "The system is unable to load mapper string description.");
-    }
-    else if (result == ERROR_INVALID_HANDLE)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "The handle is invalid.");
-    }
-    else if (result != MMSYSERR_NOERROR)
-    {
-        qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
+    MMRESULT winApiResult = midiOutClose(fMidiPtrs->midiOut);
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
     }
 
 	fConnected = false;
@@ -140,27 +97,9 @@ void QMidiOut::sendMsg(qint32 msg)
 	if (!fConnected)
 		return;
 
-    MMRESULT result = midiOutShortMsg(fMidiPtrs->midiOut, (DWORD)msg);
-
-    if (result == MIDIERR_BADOPENMODE)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "The application sent a message without a status byte to a stream handle.");
-    }
-    else if (result == MIDIERR_NOTREADY)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "The hardware is busy with other data.");
-    }
-    else if (result == MMSYSERR_INVALHANDLE)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "The specified device handle is invalid.");
-    }
-    else if (result == ERROR_INVALID_HANDLE)
-    {
-        qWarning("%s: %s", Q_FUNC_INFO, "The handle is invalid.");
-    }
-    else if (result != MMSYSERR_NOERROR)
-    {
-        qWarning("%s: Unknown error. Result:  %d", Q_FUNC_INFO, result);
+    MMRESULT winApiResult = midiOutShortMsg(fMidiPtrs->midiOut, (DWORD)msg);
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
     }
 }
 
@@ -175,12 +114,24 @@ void QMidiOut::sendSysEx(const QByteArray &data)
 	header.lpData = (LPSTR) data.data();
 	header.dwBufferLength = data.length();
 
+    MMRESULT winApiResult;
+
 	// TODO: check for retval of midiOutPrepareHeader
-	midiOutPrepareHeader(fMidiPtrs->midiOut, &header, sizeof(MIDIHDR));
+    winApiResult = midiOutPrepareHeader(fMidiPtrs->midiOut, &header, sizeof(MIDIHDR));
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
 
-	midiOutLongMsg(fMidiPtrs->midiOut, &header, sizeof(MIDIHDR));
+    winApiResult = midiOutLongMsg(fMidiPtrs->midiOut, &header, sizeof(MIDIHDR));
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
 
-	while (midiOutUnprepareHeader(fMidiPtrs->midiOut, &header, sizeof(MIDIHDR)) == MIDIERR_STILLPLAYING);
+    winApiResult = midiOutUnprepareHeader(fMidiPtrs->midiOut, &header, sizeof(MIDIHDR));
+    while (winApiResult == MIDIERR_STILLPLAYING);
+    if (winApiResult != MIDIERR_STILLPLAYING && winApiResult != MMSYSERR_NOERROR) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
 }
 
 // # pragma mark - QMidiIn
@@ -203,7 +154,10 @@ QMap<QString, QString> QMidiIn::devices()
 
 	for (unsigned int i = 0; i < numDevs; i++) {
 		MIDIINCAPSW devCaps;
-		midiInGetDevCapsW(i, &devCaps, sizeof(MIDIINCAPSW));
+        MMRESULT winApiResult = midiInGetDevCapsW(i, &devCaps, sizeof(MIDIINCAPSW));
+        if (MMSYSERR_NOERROR != winApiResult) {
+            showWinApiError(Q_FUNC_INFO, winApiResult);
+        }
 		ret.insert(QString::number(i), QString::fromWCharArray(devCaps.szPname));
 	}
 
@@ -227,10 +181,23 @@ static void CALLBACK QMidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstanc
 		auto rawData = QByteArray(midiHeader->lpData, static_cast<int>(midiHeader->dwBytesRecorded));
 		emit(self->midiSysExEvent(rawData));
 
+        MMRESULT winApiResult;
+
 		// Prepare the midi header to be reused -- what's the worst that could happen?
-		midiInUnprepareHeader(hMidiIn, midiHeader, sizeof(MIDIHDR));
-		midiInPrepareHeader(hMidiIn, midiHeader, sizeof(MIDIHDR));
-		midiInAddBuffer(hMidiIn, midiHeader, sizeof(MIDIHDR));
+        winApiResult = midiInUnprepareHeader(hMidiIn, midiHeader, sizeof(MIDIHDR));
+        if (MMSYSERR_NOERROR != winApiResult) {
+            showWinApiError(Q_FUNC_INFO, winApiResult);
+        }
+
+        winApiResult = midiInPrepareHeader(hMidiIn, midiHeader, sizeof(MIDIHDR));
+        if (MMSYSERR_NOERROR != winApiResult) {
+            showWinApiError(Q_FUNC_INFO, winApiResult);
+        }
+
+        winApiResult = midiInAddBuffer(hMidiIn, midiHeader, sizeof(MIDIHDR));
+        if (MMSYSERR_NOERROR != winApiResult) {
+            showWinApiError(Q_FUNC_INFO, winApiResult);
+        }
 		break;
 	}
 	default:
@@ -244,18 +211,30 @@ bool QMidiIn::connect(QString inDeviceId)
 		disconnect();
 	fMidiPtrs = new NativeMidiInInstances;
 
+    MMRESULT winApiResult;
+
 	fDeviceId = inDeviceId;
-	midiInOpen(&fMidiPtrs->midiIn,
+    winApiResult = midiInOpen(&fMidiPtrs->midiIn,
 		inDeviceId.toInt(),
 		reinterpret_cast<DWORD_PTR>(&QMidiInProc),
 		reinterpret_cast<DWORD_PTR>(this),
 		CALLBACK_FUNCTION | MIDI_IO_STATUS);
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
 
 	memset(&fMidiPtrs->header, 0, sizeof(MIDIHDR));
 	fMidiPtrs->header.lpData = new char[512];  // 512 bytes ought to be enough for everyone
 	fMidiPtrs->header.dwBufferLength = 512;
-	midiInPrepareHeader(fMidiPtrs->midiIn, &fMidiPtrs->header, sizeof(MIDIHDR));
-	midiInAddBuffer(fMidiPtrs->midiIn, &fMidiPtrs->header, sizeof(MIDIHDR));
+    winApiResult = midiInPrepareHeader(fMidiPtrs->midiIn, &fMidiPtrs->header, sizeof(MIDIHDR));
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
+
+    winApiResult = midiInAddBuffer(fMidiPtrs->midiIn, &fMidiPtrs->header, sizeof(MIDIHDR));
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
 
 	fConnected = true;
 	return true;
@@ -267,7 +246,11 @@ void QMidiIn::disconnect()
 		return;
 
 	delete fMidiPtrs->header.lpData;
-	midiInClose(fMidiPtrs->midiIn);
+    MMRESULT winApiResult = midiInClose(fMidiPtrs->midiIn);
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
+
 	fConnected = false;
 	delete fMidiPtrs;
 	fMidiPtrs = nullptr;
@@ -278,7 +261,10 @@ void QMidiIn::start()
 	if (!fConnected)
 		return;
 
-	midiInStart(fMidiPtrs->midiIn);
+    MMRESULT winApiResult = midiInStart(fMidiPtrs->midiIn);
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
 }
 
 void QMidiIn::stop()
@@ -286,5 +272,8 @@ void QMidiIn::stop()
 	if (!fConnected)
 		return;
 
-	midiInStop(fMidiPtrs->midiIn);
+    MMRESULT winApiResult = midiInStop(fMidiPtrs->midiIn);
+    if (MMSYSERR_NOERROR != winApiResult) {
+        showWinApiError(Q_FUNC_INFO, winApiResult);
+    }
 }
