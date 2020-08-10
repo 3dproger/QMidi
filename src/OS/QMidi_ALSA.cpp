@@ -23,7 +23,7 @@ struct NativeMidiOutInstances {
 static QMap<QString, QString> buildDevicesMap(bool forInput)
 {
 	int streams = SND_SEQ_OPEN_OUTPUT;
-	int cap = SND_SEQ_PORT_CAP_SUBS_READ | SND_SEQ_PORT_CAP_READ;
+    uint cap = SND_SEQ_PORT_CAP_SUBS_READ | SND_SEQ_PORT_CAP_READ;
 	if (forInput) {
 		streams = SND_SEQ_OPEN_INPUT;
 		cap = SND_SEQ_PORT_CAP_SUBS_WRITE | SND_SEQ_PORT_CAP_WRITE;
@@ -53,12 +53,12 @@ static QMap<QString, QString> buildDevicesMap(bool forInput)
 
 		snd_seq_port_info_set_port(pinfo, -1);
 		while (snd_seq_query_next_port(handle, pinfo) >= 0) {
-			if ((snd_seq_port_info_get_capability(pinfo) & cap) == cap) {
+            //if ((snd_seq_port_info_get_capability(pinfo) & cap) == cap) {
 				QString port = QString::number(snd_seq_port_info_get_client(pinfo));
 				port += ":" + QString::number(snd_seq_port_info_get_port(pinfo));
 				QString name = snd_seq_client_info_get_name(cinfo);
 				ret.insert(port, name);
-			}
+            //}
 		}
 	}
 
