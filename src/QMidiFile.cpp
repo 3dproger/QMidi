@@ -971,7 +971,7 @@ bool QMidiFile::save(QString filename)
 			case QMidiEvent::Meta: {
 				int data_length = e->data().size();
 				unsigned char* data = (unsigned char*)e->data().constData();
-				out.putChar(0xFF);
+				out.putChar((char)0xFF);
 				out.putChar(e->number() & 0x7F);
 				write_variable_length_quantity(&out, data_length);
 				out.write((char*)data, data_length);
