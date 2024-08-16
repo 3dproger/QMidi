@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(QMidi)
+project(QMidi VERSION 1.0)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC ON)
@@ -13,6 +13,7 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core REQUIRED)
 # Common QMidi source files & library
 aux_source_directory("${PROJECT_SOURCE_DIR}/src" SOURCES)
 set(LIBRARIES Qt${QT_VERSION_MAJOR}::Core)
+set(LIBRARY_NAME Qt${QT_VERSION_MAJOR}Midi)
 
 # Platform specific QMidi source files & libraries
 if(WIN32)
@@ -30,6 +31,7 @@ elseif(HAIKU)
 endif()
 
 # Add library
-add_library(${PROJECT_NAME} ${SOURCES})
-target_include_directories(${PROJECT_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/src")
-target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib) # static libs
+add_library(${LIBRARY_NAME} ${SOURCES})
+target_include_directories(${LIBRARY_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/src")
+target_link_libraries(${LIBRARY_NAME} ${LIBRARIES})
